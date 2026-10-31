@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Our Chat 💕</title>
+<style>
+  :root{
+    --teal:#075e54; --teal2:#128c7e; --out:#d9fdd3; --in:#ffffff;
+    --bg:#f3e6e1; --ink:#1f2a28; --mute:#6b7a77; --pink:#e9507a;
+  }
+  *{box-sizing:border-box;margin:0}
+  html,body{height:100%}
+  body{font-family:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;color:var(--ink);background:#d8cfc9;
+       display:flex;justify-content:center}
+  #app{width:100%;max-width:520px;height:100%;display:flex;flex-direction:column;background:var(--bg);position:relative;
+       box-shadow:0 0 30px rgba(0,0,0,.15)}
+  header{background:var(--teal);color:#fff;padding:10px 14px;padding-top:max(10px,env(safe-area-inset-top));
+         display:flex;align-items:center;gap:12px}
+  .avatar{width:42px;height:42px;border-radius:50%;background:#fff;display:grid;place-items:center;font-size:24px}
+  header h1{font-size:17px;font-weight:600;line-height:1.2}
+  header small{opacity:.8;font-size:12px}
+  header button{margin-left:auto;background:none;border:0;color:#fff;font-size:12px;opacity:.8;cursor:pointer}
+  #banner{background:#fff3cd;color:#664d03;font-size:12px;padding:6px 12px;text-align:center;display:none}
+  #chat{flex:1;overflow-y:auto;padding:14px 12px;display:flex;flex-direction:column;gap:4px;
+        background-image:radial-gradient(rgba(233,80,122,.08) 2px,transparent 2px);background-size:26px 26px}
+  .day{align-self:center;background:#fff;color:var(--mute);font-size:12px;padding:4px 12px;border-radius:8px;margin:10px 0;
+       box-shadow:0 1px 1px rgba(0,0,0,.08)}
+  .msg{max-width:80%;padding:7px 10px 5px;border-radius:10px;font-size:15px;line-height:1.35;
+       box-shadow:0 1px 1px rgba(0,0,0,.12);white-space:pre-wrap;word-wrap:break-word;overflow-wrap:anywhere}
+  .msg.me{align-self:flex-end;background:var(--out);border-top-right-radius:2px}
+  .msg.them{align-self:flex-start;background:var(--in);border-top-left-radius:2px}
+  .meta{display:block;text-align:right;font-size:11px;color:var(--mute);margin-top:2px}
+  .me .meta::after{content:" ✓✓";color:#34b7f1}
+  .empty{margin:auto;text-align:center;color:var(--mute);font-size:14px}
+  .empty b{display:block;font-size:40px;margin-bottom:6px}
+  #emojis{display:none;flex-wrap:wrap;gap:2px;padding:8px;background:#fff;border-top:1px solid #e5e5e5;max-height:130px;overflow-y:auto}
+  #emojis.open{display:flex}
+  #emojis button{font-size:24px;background:none;border:0;cursor:pointer;padding:4px;border-radius:8px}
+  #emojis button:hover{background:#f0f0f0}
+  form{display:flex;align-items:flex-end;gap:8px;padding:8px 10px;padding-bottom:max(8px,env(safe-area-inset-bottom));background:#f0f0f0}
+  #emojiBtn{font-size:26px;background:none;border:0;cursor:pointer;padding:6px 2px}
+  #text{flex:1;border:0;border-radius:22px;padding:11px 16px;font:inherit;font-size:15px;outline:none;resize:none;
+        max-height:110px;background:#fff}
+  #send{width:44px;height:44px;border-radius:50%;border:0;background:var(--teal2);color:#fff;font-size:20px;cursor:pointer;flex:none}
+  #send:active{transform:scale(.94)}
+  :focus-visible{outline:2px solid var(--pink);outline-offset:2px}
+  #login{position:absolute;inset:0;background:linear-gradient(160deg,var(--teal),var(--teal2));color:#fff;z-index:5;
+         display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;text-align:center}
+  #login h2{font-size:28px}
+  #login p{opacity:.85}
+  #login button{width:100%;max-width:280px;padding:14px;border:0;border-radius:14px;font-size:18px;font-weight:600;cursor:pointer;background:#fff;color:var(--teal)}
+  #login button:hover{background:#ffe8ee}
+  @media (prefers-reduced-motion:no-preference){.msg{animation:pop .15s ease-out}@keyframes pop{from{transform:scale(.95);opacity:0}}}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="login">
+    <div style="font-size:56px">💬💕</div>
+    <h2>Our little chat</h2>
+    <p>Who are you?</p>
+    <div id="who" style="display:flex;flex-direction:column;gap:10px;width:100%;align-items:center"></div>
+  </div>
+
+  <header>
+    <div class="avatar" id="avatar">💖</div>
+    <div><h1 id="title">My Love</h1><small>only for us 🔒</small></div>
+    <button id="switch" title="Switch person">Switch 🔄</button>
+  </header>
+  <div id="banner"></div>
+
+  <main id="chat"></main>
+
+  <div id="emojis"></div>
+  <form id="form">
+    <button type="button" id="emojiBtn" aria-label="Emojis">😊</button>
+    <textarea id="text" rows="1" placeholder="Type a message 💌" autocomplete="off"></textarea>
+    <button id="send" aria-label="Send">➤</button>
+  </form>
+</div>
+
+<script type="module">
+/* ============ 1) EDIT THESE ============ */
+const PEOPLE = [
+  { name: "Him 😎", avatar: "😎" },   // change to your name
+  { name: "Her 💖", avatar: "💖" }    // change to her name
+];
+
+// Paste your Firebase config here (see setup steps). Leave as is to run in demo mode.
+const firebaseConfig = {
+  apiKey: "PASTE_YOUR_API_KEY",
+  authDomain: "PASTE.firebaseapp.com",
+  projectId: "PASTE_PROJECT_ID",
+  storageBucket: "PASTE.appspot.com",
+  messagingSenderId: "PASTE",
+  appId: "PASTE"
+};
+/* ======================================= */
+
+const $ = id => document.getElementById(id);
+const configured = !firebaseConfig.apiKey.startsWith("PASTE");
+let me = localStorage.getItem("chat-me");
+let messages = [];
+let store;
+
+/* ---------- storage layer ---------- */
+async function initStore(){
+  if (configured){
+    const base = "https://www.gstatic.com/firebasejs/10.12.2/";
+    const { initializeApp } = await import(base + "firebase-app.js");
+    const fs = await import(base + "firebase-firestore.js");
+    const db = fs.getFirestore(initializeApp(firebaseConfig));
+    const col = fs.collection(db, "messages");
+    return {
+      send: m => fs.addDoc(col, m),
+      listen: cb => fs.onSnapshot(fs.query(col, fs.orderBy("ts")),
+        snap => cb(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
+    };
+  }
+  // Demo mode: this browser only (cannot sync between two phones)
+  $("banner").style.display = "block";
+  $("banner").textContent = "Demo mode: messages are saved only on this device. Add Firebase to chat across devices.";
+  const KEY = "chat-messages", ch = new BroadcastChannel("chat");
+  const read = () => JSON.parse(localStorage.getItem(KEY) || "[]");
+  return {
+    send: async m => { const all = read(); all.push({ id: crypto.randomUUID(), ...m });
+      localStorage.setItem(KEY, JSON.stringify(all)); ch.postMessage(1); render(read()); },
+    listen: cb => { cb(read()); ch.onmessage = () => cb(read()); }
+  };
+}
+
+/* ---------- rendering ---------- */
+const fmtTime = ts => new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+const fmtDay = ts => {
+  const d = new Date(ts), t = new Date(), y = new Date(Date.now() - 864e5);
+  if (d.toDateString() === t.toDateString()) return "Today";
+  if (d.toDateString() === y.toDateString()) return "Yesterday";
+  return d.toLocaleDateString([], { day: "numeric", month: "long", year: "numeric" });
+};
+
+function render(list){
+  messages = list;
+  const chat = $("chat");
+  const nearBottom = chat.scrollHeight - chat.scrollTop - chat.clientHeight < 120;
+  chat.replaceChildren();
+  if (!list.length){
+    chat.innerHTML = '<div class="empty"><b>👋</b>No messages yet.<br>Say hi to start your chat 💕</div>';
+    return;
+  }
+  let lastDay = "";
+  list.forEach(m => {
+    const day = fmtDay(m.ts);
+    if (day !== lastDay){
+      const s = document.createElement("div"); s.className = "day"; s.textContent = day; chat.append(s); lastDay = day;
+    }
+    const el = document.createElement("div");
+    el.className = "msg " + (m.from === me ? "me" : "them");
+    el.append(document.createTextNode(m.text));
+    const meta = document.createElement("span"); meta.className = "meta"; meta.textContent = fmtTime(m.ts);
+    el.append(meta); chat.append(el);
+  });
+  if (nearBottom || list.at(-1).from === me) chat.scrollTop = chat.scrollHeight;
+}
+
+/* ---------- login ---------- */
+function setMe(i){
+  me = PEOPLE[i].name;
+  localStorage.setItem("chat-me", me);
+  const other = PEOPLE[1 - i];
+  $("title").textContent = other.name;
+  $("avatar").textContent = other.avatar;
+  $("login").style.display = "none";
+  render(messages);
+}
+PEOPLE.forEach((p, i) => {
+  const b = document.createElement("button"); b.textContent = p.avatar + "  I am " + p.name;
+  b.onclick = () => setMe(i); $("who").append(b);
+});
+$("switch").onclick = () => { $("login").style.display = "flex"; };
+const saved = PEOPLE.findIndex(p => p.name === me);
+if (saved >= 0) setMe(saved);
+
+/* ---------- emojis ---------- */
+"😀 😂 🥰 😍 😘 😊 😉 🥺 😭 😴 😎 🤗 🤭 😏 🙈 😇 💖 💕 💞 💘 ❤️ 🧡 💛 💚 💙 💜 🖤 💋 🌹 🌸 ✨ 🔥 🎉 🎁 🍕 🍫 ☕ 🌙 ⭐ 🌈 👍 🙏 👏 🤝 💪 🫶 🤍 🥂 🏡 ✈️ 🎶".split(" ")
+  .forEach(e => { const b = document.createElement("button"); b.type = "button"; b.textContent = e;
+    b.onclick = () => { $("text").value += e; $("text").focus(); }; $("emojis").append(b); });
+$("emojiBtn").onclick = () => $("emojis").classList.toggle("open");
+
+/* ---------- sending ---------- */
+const text = $("text");
+text.addEventListener("input", () => { text.style.height = "auto"; text.style.height = text.scrollHeight + "px"; });
+text.addEventListener("keydown", e => {
+  if (e.key === "Enter" && !e.shiftKey && window.innerWidth > 700){ e.preventDefault(); $("form").requestSubmit(); }
+});
+$("form").addEventListener("submit", async e => {
+  e.preventDefault();
+  const t = text.value.trim();
+  if (!t || !store) return;
+  text.value = ""; text.style.height = "auto";
+  try { await store.send({ text: t, from: me, ts: Date.now() }); }
+  catch (err){ alert("Message not sent. Check your Firebase setup.\n" + err.message); text.value = t; }
+});
+
+/* ---------- start ---------- */
+store = await initStore();
+store.listen(render);
+</script>
+</body>
+</html>
